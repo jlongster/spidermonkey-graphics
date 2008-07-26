@@ -4,6 +4,9 @@
 #include "lauxlib.h"
 #include "nspr/nspr.h"
 
+int GLOBAL_STATE;
+int RUN_THREADED;
+int NUM_THREADS;
 
 //	printf("thread %d [%s]: %dms\n", ti->n, name, ms);
 long timer;
@@ -15,7 +18,6 @@ long timer;
 #define END_TIME do {											\
   timer = PR_IntervalToMilliseconds(PR_IntervalNow() - timer);	\
   } while(0);
-
 
 typedef struct {
 	PRThread* thread;
@@ -48,15 +50,15 @@ void run(void *arg) {
 	lua_close(l);
 }
 
-
 int main(int argc, const char *argv[]) {
 	if(argc == 1) {
 		printf("Usage: threads count");
 		return 1;
 	}
-	
-	int NUM_THREADS = atoi(argv[1]);
-	int RUN_THREADED = 1;
+
+	GLOBAL_STATE = atoi(argv[1]);
+	RUN_THREADED = atoi(argv[2]);
+	NUM_THREADS = atoi(argv[3]);
 
 	int i;
 	thread_info* threads[NUM_THREADS];

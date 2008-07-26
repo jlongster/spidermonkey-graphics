@@ -4,19 +4,23 @@
 #include "lauxlib.h"
 #include "nspr/nspr.h"
 
+
 //	printf("thread %d [%s]: %dms\n", ti->n, name, ms);
-#define TIME(ti, name, exp) do		 \
-  { PRIntervalTime t = PR_IntervalNow(); \
-	do { exp; } while(0);											\
-    PRUint32 ms = PR_IntervalToMilliseconds(PR_IntervalNow() - t);	\
-	ti->timer = ms;                                                 \
+long timer;
+#define TIMER timer
+#define START_TIME do {		\
+  timer = PR_IntervalNow(); \
   } while(0);
+
+#define END_TIME do {											\
+  timer = PR_IntervalToMilliseconds(PR_IntervalNow() - timer);	\
+  } while(0);
+
 
 typedef struct {
 	PRThread* thread;
 	lua_State* state;
 	int n;
-	long timer;
 } thread_info;
 
 
@@ -37,7 +41,7 @@ void run(void *arg) {
 		"  end "
 		"end";
 
-	TIME(ti, "eval", luaL_dostring(l, script));
+	luaL_dostring(l, script);
 
 	//printf("*** exiting thread %d ***\n", n);
 
@@ -56,6 +60,8 @@ int main(int argc, const char *argv[]) {
 
 	int i;
 	thread_info* threads[NUM_THREADS];
+
+	START_TIME
 	
 	for(i=0; i<NUM_THREADS; i++) {
 		thread_info *ti = (thread_info*)malloc(sizeof(thread_info));
@@ -71,17 +77,19 @@ int main(int argc, const char *argv[]) {
 		threads[i] = ti;
 	}
 
-	long total_time = 0;
 	for(i=0; i<NUM_THREADS; i++) {
+		thread_info *ti = threads[i];
+		
 		if(RUN_THREADED) {
-			PR_JoinThread(threads[i]->thread);
+			PR_JoinThread(ti->thread);
 		}
 
-		total_time += threads[i]->timer;
-		free(threads[i]);
+		free(ti);
+		threads[i] = NULL;
 	}
 
-	printf("%d\n", total_time);
+	END_TIME
+	printf("%d\n", TIMER);
 	
     return 0;
 }
